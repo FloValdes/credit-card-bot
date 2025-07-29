@@ -1,0 +1,8 @@
+## Variables de Entorno
+
+```
+BOT_TOKEN=
+OPENAI_API_KEY=
+GOOGLE_SHEETS_ID=
+TELEGRAM_CHAT_ID=
+```
