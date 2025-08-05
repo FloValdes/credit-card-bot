@@ -24,6 +24,9 @@ openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 # === FASTAPI APP ===
 app = FastAPI()
 
+# === CACHE ===
+last_purchase = {}
+
 # === GOOGLE SHEETS SETUP ===
 def get_sheets_service():
     creds = service_account.Credentials.from_service_account_file(
@@ -150,6 +153,7 @@ def write_to_sheets(row: list):
 # === MACRODROID WEBHOOK ===
 @app.post("/notification")
 async def handle_notification(req: Request):
+    global last_purchase
     data = await req.json()
     notification_text = data.get("notification", "")
     print(f"🔍 Data: {data}")
@@ -164,6 +168,11 @@ async def handle_notification(req: Request):
         currency = txn_info["currency"]
         raw_description = txn_info["raw_description"]
 
+        last_purchase = {
+            "amount": amount,
+            "currency": currency,
+            "raw_description": raw_description
+        }
 
         await send_telegram_message(CHAT_ID, f"You spent {amount} {currency} at '{raw_description}'. What was it?")
 
@@ -180,19 +189,14 @@ async def telegram_webhook(req: Request):
     if not text:
         return {"ok": True}
 
-    # Placeholder: Assume static previous context
-    fake_amount = 1234
-    fake_desc = "STARBUCKS 123"
-    currency = "CLP"
-
     category = await categorize_purchase(text)
 
     print(f"🔍 Category: {category}")
 
     write_to_sheets([
-        fake_amount,
-        currency,
-        fake_desc,
+        last_purchase["amount"],
+        last_purchase["currency"],
+        last_purchase["raw_description"],
         text,        # user description
         category     # AI-generated category
     ])
