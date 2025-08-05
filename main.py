@@ -84,7 +84,7 @@ async def extract_transaction_info(notification_text: str) -> Dict[str, str]:
     - amount (convert comma-separated numbers like "2,349" to integer 2349)
     - currency (CLP for Chile, USD, EUR, etc. - infer from context if not explicit)
     - raw_description (merchant/store name, clean it up but keep essential info)
-    - is_credit_card (true if this is clearly a credit card transaction)
+    - is_credit_card (true if this is a credit card transaction)
 
     Examples of credit card indicators:
     - "Se realizó una compra por X con su Tarjeta de Crédito"
@@ -93,12 +93,12 @@ async def extract_transaction_info(notification_text: str) -> Dict[str, str]:
 
     Notification: "{notification_text}"
 
-    Respond ONLY in JSON format:
+    Respond ONLY in JSON format, according to the following schema:
     {{
-        "is_credit_card": true,
-        "amount": 2349,
-        "currency": "CLP",
-        "raw_description": "UBER TRIP"
+        "is_credit_card": boolean,
+        "amount": number,
+        "currency": string,
+        "raw_description": string
     }}"""
 
     response = await openai_client.chat.completions.create(
@@ -151,7 +151,9 @@ def write_to_sheets(row: list):
 @app.post("/notification")
 async def handle_notification(req: Request):
     data = await req.json()
-    notification_text = data.get("text", "")
+    notification_text = data.get("notification", "")
+    print(f"🔍 Data: {data}")
+    print(f"🔍 Notification text: {notification_text}")
 
     txn_info = await extract_transaction_info(notification_text)
 
